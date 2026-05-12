@@ -70,6 +70,7 @@ class Traceloop:
         image_uploader: Optional[ImageUploader] = None,
         span_postprocess_callback: Optional[Callable[[ReadableSpan], None]] = None,
         endpoint_is_traceloop: Optional[bool] = False,
+        use_legacy_attributes: bool = True,
     ) -> Optional[Client]:
         if not enabled:
             TracerWrapper.set_disabled(True)
@@ -146,6 +147,7 @@ class Traceloop:
             instruments=instruments,
             block_instruments=block_instruments,
             span_postprocess_callback=span_postprocess_callback,
+            use_legacy_attributes=use_legacy_attributes,
         )
 
         metrics_disabled_by_config = not is_metrics_enabled()

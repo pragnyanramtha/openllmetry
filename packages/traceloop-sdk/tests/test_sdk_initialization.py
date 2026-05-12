@@ -2,7 +2,11 @@ import json
 import pytest
 from unittest.mock import patch
 from openai import OpenAI
+from traceloop.sdk import Traceloop
 from traceloop.sdk.decorators import workflow
+from traceloop.sdk.tracing.tracing import TracerWrapper
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor, BatchSpanProcessor
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 
 @pytest.fixture
@@ -223,3 +227,27 @@ def test_get_default_span_processor():
     assert isinstance(processor, BatchSpanProcessor)
     assert hasattr(processor, "_traceloop_processor")
     assert getattr(processor, "_traceloop_processor") is True
+
+
+def test_use_legacy_attributes_false_propagates_to_instrumentors():
+    """use_legacy_attributes=False passed to Traceloop.init() must reach each
+    instrumentor's Config — otherwise users have no way to opt into the new
+    event-based format through the SDK."""
+    from opentelemetry.instrumentation.openai.shared.config import Config as OpenAIConfig
+
+    _instance = None
+    if hasattr(TracerWrapper, "instance"):
+        _instance = TracerWrapper.instance
+        del TracerWrapper.instance
+
+    exporter = InMemorySpanExporter()
+    Traceloop.init(
+        exporter=exporter,
+        disable_batch=True,
+        use_legacy_attributes=False,
+    )
+
+    assert OpenAIConfig.use_legacy_attributes is False
+
+    if _instance is not None:
+        TracerWrapper.instance = _instance
